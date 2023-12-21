@@ -106,16 +106,13 @@ def swap_face(
     upscale_options: Union[UpscaleOptions, None] = None,
 ) -> ImageResult:
     result_image = target_img
-    converted = convert_to_sd(target_img)
-    scale, fn = converted[0], converted[1]
-    if model is not None and not scale:
+    if model is not None:
         if isinstance(source_img, str):  # source_img is a base64 string
             import base64, io
             if 'base64,' in source_img:  # check if the base64 string has a data URL scheme
                 base64_data = source_img.split('base64,')[-1]
                 img_bytes = base64.b64decode(base64_data)
             else:
-                # if no data URL scheme, just decode
                 img_bytes = base64.b64decode(source_img)
             source_img = Image.open(io.BytesIO(img_bytes))
         source_img = cv2.cvtColor(np.array(source_img), cv2.COLOR_RGB2BGR)
@@ -138,5 +135,7 @@ def swap_face(
                 result_image = upscale_image(result_image, upscale_options)
         else:
             logger.info("No source face found")
-    result_image.save(fn.name)
-    return ImageResult(path=fn.name)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as fn:
+        result_image.save(fn.name)
+        return ImageResult(path=fn.name)
